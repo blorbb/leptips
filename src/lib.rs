@@ -8,6 +8,8 @@ use web_sys::wasm_bindgen::JsCast;
 
 pub use floater::geometry::Side;
 
+static WINDOW_SCROLL_EV: std::sync::Once = std::sync::Once::new();
+
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     let tooltip_el = view! {
         <div class="tooltip">
@@ -30,19 +32,22 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
         .dyn_into::<web_sys::HtmlElement>()
         .expect("reference element's offset parent should be an HTML element");
 
-    window_event_listener(ev::scroll, {
-        let tooltip_el = tooltip_el.clone();
-        let el = el.clone();
-        let container = container.clone();
-        let opts = opts.clone();
-        move |_| {
-            if !tooltip_el.is_connected() {
-                return;
+    WINDOW_SCROLL_EV.call_once(|| {
+        window_event_listener(ev::scroll, {
+            let tooltip_el = tooltip_el.clone();
+            let el = el.clone();
+            let container = container.clone();
+            let opts = opts.clone();
+            move |_| {
+                if !tooltip_el.is_connected() {
+                    return;
+                }
+                recalculate(&el, &tooltip_el, &container, &opts)
             }
-            recalculate(&el, &tooltip_el, &container, &opts)
-        }
+        });
     });
 
+    // show on hover (needs to be fixed up)
     _ = el.clone().on(ev::mouseenter, {
         let (el, tooltip_el, container) = (el.clone(), tooltip_el.clone(), container.clone());
         move |_| recalculate(&el, &tooltip_el, &container, &opts)
