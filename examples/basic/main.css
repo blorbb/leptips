@@ -12,10 +12,6 @@ body {
     min-height: 100dvh;
 }
 
-.tooltip {
-    position: absolute;
-}
-
 .tooltip-contents {
     background-color: black;
     color: white;

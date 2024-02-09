@@ -12,7 +12,7 @@ static WINDOW_SCROLL_EV: std::sync::Once = std::sync::Once::new();
 
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     let tooltip_el = view! {
-        <div class="tooltip">
+        <div class="tooltip" style:position="absolute">
             <div class="tooltip-contents">
                 {opts.content.run()}
             </div>
