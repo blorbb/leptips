@@ -18,7 +18,10 @@ macro_rules! clone {
 static WINDOW_SCROLL_EV: std::sync::Once = std::sync::Once::new();
 
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
+    // to put styles into this one
     let arrow = NodeRef::new();
+    // to get dimensions from this one
+    let arrow_inner = NodeRef::new();
     let tip = view! {
         <div class="tooltip" style:position="absolute">
             <div class="tooltip-contents">
@@ -31,6 +34,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
                 style:aspect-ratio=1
             >
                 <div
+                    ref=arrow_inner
                     class="tooltip-arrow"
                     style:display="grid"
                     style:place-content="start"
@@ -53,20 +57,20 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
 
     WINDOW_SCROLL_EV.call_once(|| {
         window_event_listener(ev::scroll, {
-            clone!(el tip container arrow opts);
+            clone!(el tip container arrow arrow_inner opts);
             move |_| {
                 if !tip.is_connected() {
                     return;
                 }
-                recalculate(&el, &tip, &container, &arrow.get().unwrap(), &opts)
+                recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
             }
         });
     });
 
     // show on hover (needs to be fixed up)
     _ = el.clone().on(ev::click, {
-        clone!(el tip container arrow opts);
-        move |_| recalculate(&el, &tip, &container, &arrow.get().unwrap(), &opts)
+        clone!(el tip container arrow arrow_inner opts);
+        move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
     });
     // _ = el.clone().on(ev::mouseleave, move |_| tip.remove());
 }
@@ -75,13 +79,11 @@ pub fn recalculate(
     el: &web_sys::HtmlElement,
     tip: &leptos::HtmlElement<html::Div>,
     container: &web_sys::HtmlElement,
-    arrow: &leptos::HtmlElement<html::Div>,
+    arrow: &NodeRef<html::Div>,
+    arrow_inner: &NodeRef<html::Div>,
     opts: &TooltipOpts,
 ) {
-    let el = el.clone();
-    let tip = tip.clone();
-    let container = container.clone();
-    let opts = opts.clone();
+    let (arrow, arrow_inner) = (arrow.get().unwrap(), arrow_inner.get().unwrap());
 
     tip.remove();
     _ = el.after_with_node_1(&tip);
@@ -89,10 +91,16 @@ pub fn recalculate(
     let con_rect = ElemRect::from_elem_visibility(&container);
     let ref_rect = ElemRect::from_elem_offset(&el);
     let tip_size = ElemSize::from_bounding_client_rect(&tip);
-    logging::log!("{tip_size:?}");
+    // don't use client rect so that it's consistent even if rotated
+    let arr_size = ElemSize::new(
+        f64::from(arrow_inner.offset_width()),
+        f64::from(arrow_inner.offset_height()),
+    );
 
     let mut arrow_data = ArrowData::new();
-    let arr_width = arrow.get_bounding_client_rect().width();
+    let arr_width = arr_size.width();
+    let arr_height = arr_size.height();
+    logging::log!("{arr_height}");
 
     let data = compute_position(
         ref_rect,
@@ -100,9 +108,10 @@ pub fn recalculate(
         con_rect,
         PositionOpts::new()
             .with_side(opts.side)
-            .add_modifier(&mut modifiers::offset(opts.padding))
+            .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
             .add_modifier(
                 opts.arrow
+                    .as_ref()
                     .map(|_| Box::new(modifiers::arrow(arr_width, &mut arrow_data)))
                     .as_deref_mut(),
             ),
