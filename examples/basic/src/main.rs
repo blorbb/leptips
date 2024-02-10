@@ -22,6 +22,7 @@ fn App() -> impl IntoView {
                         padding: 5.0,
                         side: Side::Left,
                         content: (|| view! { "heelllllooo there" }).into(),
+                        show_on: leptips::ShowOn::Click,
                         ..Default::default()
                     }}
                 >

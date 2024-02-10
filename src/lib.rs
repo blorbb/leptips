@@ -15,7 +15,7 @@ macro_rules! clone {
     };
 }
 
-static WINDOW_SCROLL_EV: std::sync::Once = std::sync::Once::new();
+static WINDOW_EVENTS: std::sync::Once = std::sync::Once::new();
 
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     // to put styles into this one
@@ -32,6 +32,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
                 ref=arrow
                 style:position="absolute"
                 style:aspect-ratio=1
+                style:pointer-events="none"
             >
                 <div
                     ref=arrow_inner
@@ -55,7 +56,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
         .dyn_into::<web_sys::HtmlElement>()
         .expect("reference element's offset parent should be an HTML element");
 
-    WINDOW_SCROLL_EV.call_once(|| {
+    WINDOW_EVENTS.call_once(|| {
         window_event_listener(ev::scroll, {
             clone!(el tip container arrow arrow_inner opts);
             move |_| {
@@ -67,12 +68,40 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
         });
     });
 
-    // show on hover (needs to be fixed up)
-    _ = el.clone().on(ev::click, {
-        clone!(el tip container arrow arrow_inner opts);
-        move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
-    });
-    // _ = el.clone().on(ev::mouseleave, move |_| tip.remove());
+    match opts.show_on {
+        ShowOn::Hover => {
+            _ = el.clone().on(ev::mouseenter, {
+                clone!(el tip container arrow arrow_inner opts);
+                move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
+            });
+            _ = el.clone().on(ev::mouseleave, {
+                clone!(tip);
+                move |_| tip.remove()
+            });
+        }
+        ShowOn::Click => {
+            _ = el.clone().on(ev::click, {
+                clone!(el tip container arrow arrow_inner opts);
+                move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
+            });
+            // remove on click outside
+            let handler = window_event_listener(ev::click, {
+                clone!(el tip);
+                move |ev| {
+                    let target = ev
+                        .target()
+                        .and_then(|target| target.dyn_into::<web_sys::Node>().ok());
+
+                    logging::log!("{target:?}");
+
+                    if !(el.contains(target.as_ref()) || tip.contains(target.as_ref())) {
+                        tip.remove();
+                    }
+                }
+            });
+            on_cleanup(|| handler.remove());
+        }
+    }
 }
 
 pub fn recalculate(
@@ -133,6 +162,14 @@ pub struct TooltipOpts {
     pub side: Side,
     pub content: ViewFn,
     pub arrow: Option<ViewFn>,
+    pub show_on: ShowOn,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ShowOn {
+    #[default]
+    Hover,
+    Click,
 }
 
 impl Default for TooltipOpts {
@@ -141,6 +178,7 @@ impl Default for TooltipOpts {
             padding: 0.0,
             side: Side::default(),
             content: ViewFn::default(),
+            show_on: ShowOn::default(),
             arrow: Some(
                 (|| view! {
                     <svg width="16" height="6" xmlns="http://www.w3.org/2000/svg" style:transform="rotate(180deg)">
