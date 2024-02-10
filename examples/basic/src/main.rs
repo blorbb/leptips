@@ -21,7 +21,8 @@ fn App() -> impl IntoView {
                     use:tooltip={TooltipOpts {
                         padding: 5.0,
                         side: Side::Left,
-                        content: (|| view! { "heelllllooo there" }).into()
+                        content: (|| view! { "heelllllooo there" }).into(),
+                        ..Default::default()
                     }}
                 >
                     "this is a button wooo"
