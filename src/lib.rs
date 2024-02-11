@@ -177,6 +177,12 @@ pub fn recalculate(
     _ = tip.clone().style("top", format!("{y}px"));
 
     let arr_css = arrow_data.generate_css_text(data.side, arr_width, "px");
+    // clear any other positioning attributes, e.g. when it flips
+    let arr_stylesheet = (*arrow).style();
+    for side in ["left", "top", "right", "bottom"] {
+        _ = arr_stylesheet.remove_property(side);
+    }
+    // set the actual styles
     arr_css.into_iter().for_each(|(k, v)| {
         _ = arrow.clone().style(k, v);
     });
