@@ -33,6 +33,11 @@ fn App() -> impl IntoView {
                         "what"
                     </button>
                 </Show>
+                <br/>
+                <button
+                    use:tooltip={move || view! {"my count is " {count}}}
+                    on:click=move |_| count.update(|c| *c += 1)
+                >"look at me!"</button>
             </div>
         </div>
         <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>

@@ -148,9 +148,14 @@ pub fn recalculate(
         PositionOpts::new()
             .with_side(opts.side)
             .add_modifier(
+                &mut modifiers::flip()
+                    .padding(opts.padding)
+                    .padding_outward(opts.padding * 2.0 + arr_height),
+            )
+            .add_modifier(
                 &mut modifiers::shift()
                     .padding(opts.padding)
-                    .padding_outward(opts.padding * 2.0)
+                    .padding_outward(opts.padding * 2.0 + arr_height)
                     .limiter(limiter::attached(arr_width / 2.0 + opts.border_radius)),
             )
             .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
