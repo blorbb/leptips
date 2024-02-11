@@ -2,6 +2,7 @@ use floater::{
     compute_position,
     geometry::{ElemRect, ElemSize},
     modifiers::{self, arrow::ArrowData, shift::limiter},
+    padding::Padding,
     PositionOpts,
 };
 use leptos::*;
@@ -141,21 +142,22 @@ pub fn recalculate(
     let arr_width = arr_size.width();
     let arr_height = arr_size.height();
 
+    let mod_padding = Padding {
+        outward: opts.padding * 2.0 + arr_height,
+        inward: opts.padding,
+        cross: opts.padding,
+    };
+
     let data = compute_position(
         ref_rect,
         tip_size,
         con_rect,
         PositionOpts::new()
             .with_side(opts.side)
-            .add_modifier(
-                &mut modifiers::flip()
-                    .padding(opts.padding)
-                    .padding_outward(opts.padding * 2.0 + arr_height),
-            )
+            .add_modifier(&mut modifiers::flip().padding(mod_padding))
             .add_modifier(
                 &mut modifiers::shift()
-                    .padding(opts.padding)
-                    .padding_outward(opts.padding * 2.0 + arr_height)
+                    .padding(mod_padding)
                     .limiter(limiter::attached(arr_width / 2.0 + opts.border_radius)),
             )
             .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
@@ -176,7 +178,7 @@ pub fn recalculate(
     _ = tip.clone().style("left", format!("{x}px"));
     _ = tip.clone().style("top", format!("{y}px"));
 
-    let arr_css = arrow_data.generate_css_text(data.side, arr_width, "px");
+    let arr_css = arrow_data.generate_css_props(data.side, arr_width, "px");
     // clear any other positioning attributes, e.g. when it flips
     let arr_stylesheet = (*arrow).style();
     for side in ["left", "top", "right", "bottom"] {
