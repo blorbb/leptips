@@ -1,7 +1,7 @@
 use floater::{
     compute_position,
     geometry::{ElemRect, ElemSize},
-    modifiers::{self, arrow::ArrowData},
+    modifiers::{self, arrow::ArrowData, shift::limiter},
     PositionOpts,
 };
 use leptos::*;
@@ -150,7 +150,8 @@ pub fn recalculate(
             .add_modifier(
                 &mut modifiers::shift()
                     .padding(opts.padding)
-                    .padding_outward(opts.padding * 2.0),
+                    .padding_outward(opts.padding * 2.0)
+                    .limiter(limiter::attached(arr_width / 2.0)),
             )
             .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
             .add_modifier(
