@@ -18,19 +18,21 @@ fn App() -> impl IntoView {
                     on:click=move |_| count.update(|c| *c += 1)
                 >"look at me!"</button>
                 <br />
-                <button
-                    use:tooltip={TooltipOpts {
-                        padding: 5.0,
-                        side: Side::Left,
-                        content: (|| view! { "heelllllooo there" }).into(),
-                        show_on: leptips::ShowOn::Click,
-                        ..Default::default()
-                    }}
-                >
-                    "this is a button wooo"
-                    <hr/>
-                    "what"
-                </button>
+                <Show when={move || count.get() % 2 == 0}>
+                    <button
+                        use:tooltip={TooltipOpts {
+                            padding: 5.0,
+                            side: Side::Left,
+                            content: (|| view! { "heelllllooo there" }).into(),
+                            show_on: leptips::ShowOn::Click,
+                            ..Default::default()
+                        }}
+                    >
+                        "this is a button wooo"
+                        <hr/>
+                        "what"
+                    </button>
+                </Show>
             </div>
         </div>
         <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
