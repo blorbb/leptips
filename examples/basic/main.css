@@ -17,3 +17,7 @@ body {
     color: white;
     padding: 1ex 1em;
 }
+
+hr {
+    height: 100px;
+}

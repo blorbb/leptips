@@ -15,8 +15,6 @@ macro_rules! clone {
     };
 }
 
-static WINDOW_EVENTS: std::sync::Once = std::sync::Once::new();
-
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     // to put styles into this one
     let arrow = NodeRef::new();
@@ -46,27 +44,41 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
         </div>
     };
 
-    let container = el
-        .offset_parent()
-        .unwrap_or_else(|| {
-            document()
-                .document_element()
-                .expect("no document element found")
-        })
+    // TODO: find actual scrolling element
+    let container = document()
+        .scrolling_element()
+        .unwrap()
         .dyn_into::<web_sys::HtmlElement>()
         .expect("reference element's offset parent should be an HTML element");
 
-    WINDOW_EVENTS.call_once(|| {
-        window_event_listener(ev::scroll, {
-            clone!(el tip container arrow arrow_inner opts);
-            move |_| {
-                if !tip.is_connected() {
-                    return;
-                }
+    let handler = window_event_listener(ev::scroll, {
+        clone!(el tip container arrow arrow_inner opts);
+        move |_| {
+            logging::log!("scrolled");
+            if tip.is_connected() {
                 recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
             }
-        });
+        }
     });
+    on_cleanup(|| handler.remove());
+
+    let handler = window_event_listener(ev::blur, {
+        clone!(tip);
+        move |_| {
+            tip.remove();
+        }
+    });
+    on_cleanup(|| handler.remove());
+
+    let handler = window_event_listener(ev::resize, {
+        clone!(el tip container arrow arrow_inner opts);
+        move |_| {
+            if tip.is_connected() {
+                recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
+            }
+        }
+    });
+    on_cleanup(|| handler.remove());
 
     match opts.show_on {
         ShowOn::Hover => {
@@ -92,8 +104,6 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
                         .target()
                         .and_then(|target| target.dyn_into::<web_sys::Node>().ok());
 
-                    logging::log!("{target:?}");
-
                     if !(el.contains(target.as_ref()) || tip.contains(target.as_ref())) {
                         tip.remove();
                     }
@@ -114,8 +124,9 @@ pub fn recalculate(
 ) {
     let (arrow, arrow_inner) = (arrow.get().unwrap(), arrow_inner.get().unwrap());
 
-    tip.remove();
-    _ = el.after_with_node_1(&tip);
+    if !tip.is_connected() {
+        _ = el.after_with_node_1(&tip);
+    }
 
     let con_rect = ElemRect::from_elem_visibility(&container);
     let ref_rect = ElemRect::from_elem_offset(&el);
@@ -129,7 +140,6 @@ pub fn recalculate(
     let mut arrow_data = ArrowData::new();
     let arr_width = arr_size.width();
     let arr_height = arr_size.height();
-    logging::log!("{arr_height}");
 
     let data = compute_position(
         ref_rect,
@@ -137,6 +147,11 @@ pub fn recalculate(
         con_rect,
         PositionOpts::new()
             .with_side(opts.side)
+            .add_modifier(
+                &mut modifiers::shift()
+                    .padding(opts.padding)
+                    .padding_outward(opts.padding * 2.0),
+            )
             .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
             .add_modifier(
                 opts.arrow

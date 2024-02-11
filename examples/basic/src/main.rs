@@ -10,6 +10,7 @@ fn main() {
 fn App() -> impl IntoView {
     let count = RwSignal::new(0);
     view! {
+        <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
         <div class="center" style:height="20rem">
             <div>
                 <button
@@ -27,8 +28,11 @@ fn App() -> impl IntoView {
                     }}
                 >
                     "this is a button wooo"
+                    <hr/>
+                    "what"
                 </button>
             </div>
         </div>
+        <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
     }
 }
