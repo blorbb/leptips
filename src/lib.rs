@@ -22,7 +22,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     let arrow_inner = NodeRef::new();
     let tip = view! {
         <div class="tooltip" style:position="absolute">
-            <div class="tooltip-contents">
+            <div class="tooltip-contents" style:border-radius={format!("{}px", opts.border_radius)}>
                 {opts.content.run()}
             </div>
             <div
@@ -151,13 +151,18 @@ pub fn recalculate(
                 &mut modifiers::shift()
                     .padding(opts.padding)
                     .padding_outward(opts.padding * 2.0)
-                    .limiter(limiter::attached(arr_width / 2.0)),
+                    .limiter(limiter::attached(arr_width / 2.0 + opts.border_radius)),
             )
             .add_modifier(&mut modifiers::offset(opts.padding + arr_height))
             .add_modifier(
                 opts.arrow
                     .as_ref()
-                    .map(|_| Box::new(modifiers::arrow(arr_width, &mut arrow_data)))
+                    .map(|_| {
+                        Box::new(
+                            modifiers::arrow(arr_width, &mut arrow_data)
+                                .padding(opts.border_radius),
+                        )
+                    })
                     .as_deref_mut(),
             ),
     );
@@ -179,6 +184,7 @@ pub struct TooltipOpts {
     pub content: ViewFn,
     pub arrow: Option<ViewFn>,
     pub show_on: ShowOn,
+    pub border_radius: f64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -202,6 +208,7 @@ impl Default for TooltipOpts {
                     </svg>
                 }).into(),
             ),
+            border_radius: 5.0,
         }
     }
 }
