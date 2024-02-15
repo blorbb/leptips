@@ -5,19 +5,25 @@ use leptos::*;
 ///
 /// This struct should be constructed using the [`tip`] free function.
 /// Configuration is done with the builder pattern. All options not passed
-/// in explicitly will be set to a default, either with a context of type
-/// [`DefaultOpts`], or the default configuration.
+/// in explicitly will be set to a default, either through a provided
+/// [`context`](leptos::provide_context) of type [`DefaultOpts`],
+/// or the default configuration [`DefaultOpts::default`].
+///
+/// A blanket implementation is provided to convert all view functions into
+/// a [`PartialOpts`] struct. If you don't want to override any options,
+/// you can just provide a view function in `use:tooltip` instead of wrapping
+/// it in [`tip`].
 #[derive(Default, Clone)]
 pub struct PartialOpts {
     pub(crate) content: ViewFn,
     pub(crate) padding: Option<f64>,
+    pub(crate) border_radius: Option<f64>,
+    pub(crate) class: Option<&'static str>,
     pub(crate) side: Option<Side>,
+    pub(crate) show_on: Option<ShowOn>,
     /// First option is whether the arrow property is set.
     /// Second option is whether there is an arrow.
     pub(crate) arrow: Option<Option<ViewFn>>,
-    pub(crate) show_on: Option<ShowOn>,
-    pub(crate) border_radius: Option<f64>,
-    pub(crate) class: Option<&'static str>,
 }
 
 impl<T: Into<ViewFn>> From<T> for PartialOpts {
@@ -82,6 +88,10 @@ impl PartialOpts {
     }
 }
 
+/// Default options to be used by a tooltip.
+///
+/// This should generally be used in a [`provide_context`], where all tooltips
+/// in the current (and child) components will then get these configuration options.
 #[derive(Clone)]
 pub struct DefaultOpts {
     pub padding: f64,
@@ -119,7 +129,7 @@ impl Default for DefaultOpts {
 }
 
 impl DefaultOpts {
-    pub(crate) fn fill_from(mut self, opts: PartialOpts) -> Self {
+    pub(crate) fn overwrite_from(mut self, opts: PartialOpts) -> Self {
         if let Some(padding) = opts.padding {
             self.padding = padding;
         };

@@ -22,7 +22,7 @@ macro_rules! clone {
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: PartialOpts) {
     let context_opts = use_context::<DefaultOpts>().unwrap_or_else(DefaultOpts::default);
     let content = opts.content.clone();
-    let opts = context_opts.fill_from(opts);
+    let opts = context_opts.overwrite_from(opts);
 
     // to put styles into this one
     let arrow = NodeRef::new();
