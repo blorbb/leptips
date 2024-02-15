@@ -21,8 +21,13 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
     let arrow = NodeRef::new();
     // to get dimensions from this one
     let arrow_inner = NodeRef::new();
+
+    _ = el.clone().classes(opts.class);
     let tip = view! {
-        <div class="tooltip" style:position="absolute">
+        <div
+            class={format!("tooltip {}", opts.class)}
+            style:position="absolute"
+        >
             <div class="tooltip-contents" style:border-radius={format!("{}px", opts.border_radius)}>
                 {opts.content.run()}
             </div>
@@ -198,6 +203,7 @@ pub struct TooltipOpts {
     pub arrow: Option<ViewFn>,
     pub show_on: ShowOn,
     pub border_radius: f64,
+    pub class: &'static str,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -222,6 +228,7 @@ impl Default for TooltipOpts {
                 }).into(),
             ),
             border_radius: 5.0,
+            class: "",
         }
     }
 }
