@@ -64,25 +64,20 @@ impl PartialOpts {
         self
     }
 
-    pub fn fill_rest(mut self, opts: DefaultOpts) -> Self {
-        if self.padding.is_none() {
-            self.padding = Some(opts.padding)
-        }
-        if self.side.is_none() {
-            self.side = Some(opts.side)
-        }
-        if self.arrow.is_none() {
-            self.arrow = Some(opts.arrow)
-        }
-        if self.show_on.is_none() {
-            self.show_on = Some(opts.show_on)
-        }
-        if self.border_radius.is_none() {
-            self.border_radius = Some(opts.border_radius)
-        }
-        if self.class.is_none() {
-            self.class = Some(opts.class)
-        }
+    /// Fills the options with the provided [`DefaultOpts`].
+    ///
+    /// This can be used as an alternative to providing a context, e.g. for
+    /// making a single tooltip have different options.
+    ///
+    /// This should be ran as the first method after [`tip`]. Individual settings
+    /// can still be overridden with the other builder methods.
+    pub fn fill_from(mut self, opts: DefaultOpts) -> Self {
+        self.padding = Some(opts.padding);
+        self.side = Some(opts.side);
+        self.arrow = Some(opts.arrow);
+        self.show_on = Some(opts.show_on);
+        self.border_radius = Some(opts.border_radius);
+        self.class = Some(opts.class);
         self
     }
 }
