@@ -8,6 +8,9 @@ use floater::{
 use leptos::*;
 use web_sys::wasm_bindgen::JsCast;
 
+mod opts;
+pub use opts::*;
+
 pub use floater::geometry::Side;
 
 macro_rules! clone {
@@ -16,7 +19,11 @@ macro_rules! clone {
     };
 }
 
-pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
+pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: PartialOpts) {
+    let context_opts = use_context::<DefaultOpts>().unwrap_or_else(DefaultOpts::default);
+    let content = opts.content.clone();
+    let opts = context_opts.fill_from(opts);
+
     // to put styles into this one
     let arrow = NodeRef::new();
     // to get dimensions from this one
@@ -29,7 +36,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: TooltipOpts) {
             style:position="absolute"
         >
             <div class="tooltip-contents" style:border-radius={format!("{}px", opts.border_radius)}>
-                {opts.content.run()}
+                {content.run()}
             </div>
             <div
                 class="tooltip-arrow-box"
@@ -126,7 +133,7 @@ pub fn recalculate(
     container: &web_sys::HtmlElement,
     arrow: &NodeRef<html::Div>,
     arrow_inner: &NodeRef<html::Div>,
-    opts: &TooltipOpts,
+    opts: &DefaultOpts,
 ) {
     let (arrow, arrow_inner) = (arrow.get().unwrap(), arrow_inner.get().unwrap());
 
@@ -193,51 +200,4 @@ pub fn recalculate(
     arr_css.into_iter().for_each(|(k, v)| {
         _ = arrow.clone().style(k, v);
     });
-}
-
-#[derive(Clone)]
-pub struct TooltipOpts {
-    pub padding: f64,
-    pub side: Side,
-    pub content: ViewFn,
-    pub arrow: Option<ViewFn>,
-    pub show_on: ShowOn,
-    pub border_radius: f64,
-    pub class: &'static str,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum ShowOn {
-    #[default]
-    Hover,
-    Click,
-}
-
-impl Default for TooltipOpts {
-    fn default() -> Self {
-        Self {
-            padding: 0.0,
-            side: Side::default(),
-            content: ViewFn::default(),
-            show_on: ShowOn::default(),
-            arrow: Some(
-                (|| view! {
-                    <svg width="16" height="6" xmlns="http://www.w3.org/2000/svg" style:transform="rotate(180deg)">
-                        <path d="M0 6s1.796-.013 4.67-3.615C5.851.9 6.93.006 8 0c1.07-.006 2.148.887 3.343 2.385C14.233 6.005 16 6 16 6H0z" />
-                    </svg>
-                }).into(),
-            ),
-            border_radius: 5.0,
-            class: "",
-        }
-    }
-}
-
-impl<T: Into<ViewFn>> From<T> for TooltipOpts {
-    fn from(value: T) -> Self {
-        Self {
-            content: value.into(),
-            ..Default::default()
-        }
-    }
 }

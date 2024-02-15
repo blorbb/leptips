@@ -1,4 +1,4 @@
-use leptips::{tooltip, Side, TooltipOpts};
+use leptips::{tip, tooltip, DefaultOpts, Side};
 use leptos::*;
 
 fn main() {
@@ -8,6 +8,12 @@ fn main() {
 
 #[component]
 fn App() -> impl IntoView {
+    provide_context(DefaultOpts {
+        padding: 5.0,
+        show_on: leptips::ShowOn::Click,
+        ..Default::default()
+    });
+
     let count = RwSignal::new(0);
     view! {
         <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
@@ -20,13 +26,11 @@ fn App() -> impl IntoView {
                 <br />
                 <Show when={move || count.get() % 2 == 0}>
                     <button
-                        use:tooltip={TooltipOpts {
-                            padding: 5.0,
-                            side: Side::Left,
-                            content: (|| view! { "heelllllooo there" }).into(),
-                            show_on: leptips::ShowOn::Click,
-                            ..Default::default()
-                        }}
+                        use:tooltip={tip(|| view! { "heelllllooo there" })
+                            .with_padding(5.0)
+                            .with_side(Side::Left)
+                            .show_on(leptips::ShowOn::Click)
+                        }
                     >
                         "this is a button wooo"
                         <hr/>
