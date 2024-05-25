@@ -155,24 +155,32 @@ fn recalculate_all_opts(
         _ = el.after_with_node_1(tip);
     }
 
-    let viewport_rect = {
-        // should be the <html> element
-        let html = document()
-            .scrolling_element()
-            .expect("document should have scrolling element");
-        ElemRect::new(
-            0.0,
-            0.0,
-            f64::from(html.client_width()),
-            f64::from(html.client_height()),
-        )
+    let con_rect = {
+        let viewport_rect = {
+            // should be the <html> element
+            let html = document()
+                .scrolling_element()
+                .expect("document should have scrolling element");
+            ElemRect::new(
+                0.0,
+                0.0,
+                f64::from(html.client_width()),
+                f64::from(html.client_height()),
+            )
+        };
+
+        let mut rect = if let Some(container) = container {
+            ElemRect::from_bounding_client_rect(container).intersect(&viewport_rect)
+        } else {
+            viewport_rect
+        };
+        *rect.x_mut() += opts.container_padding_left;
+        *rect.y_mut() += opts.container_padding_top;
+        *rect.width_mut() -= opts.container_padding_left + opts.container_padding_right;
+        *rect.height_mut() -= opts.container_padding_top + opts.container_padding_bottom;
+        rect
     };
 
-    let con_rect = if let Some(container) = container {
-        ElemRect::from_bounding_client_rect(container).intersect(&viewport_rect)
-    } else {
-        viewport_rect
-    };
     let ref_rect = ElemRect::from_bounding_client_rect(el);
     let tip_size = ElemSize::from_bounding_client_rect(tip);
     // don't use client rect so that it's consistent even if rotated

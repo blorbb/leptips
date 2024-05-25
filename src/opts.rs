@@ -31,6 +31,10 @@ pub struct Opts {
     /// be `Some` when the container needs to be used.
     #[allow(clippy::type_complexity)]
     pub(crate) container: Option<Option<Rc<dyn Fn() -> Option<web_sys::Element>>>>,
+    pub(crate) container_padding_top: Option<f64>,
+    pub(crate) container_padding_bottom: Option<f64>,
+    pub(crate) container_padding_left: Option<f64>,
+    pub(crate) container_padding_right: Option<f64>,
 }
 
 impl<T: Into<ViewFn>> From<T> for Opts {
@@ -112,6 +116,38 @@ impl Opts {
         self.container = Some(None);
         self
     }
+
+    /// How much further in the tooltip should be from the sides of the container.
+    ///
+    /// Regular `padding` already requires the tooltip to be that amount away
+    /// from the edges of the container. This adds even more on to it.
+    pub fn container_padding(mut self, padding: f64) -> Self {
+        self.container_padding_top = Some(padding);
+        self.container_padding_bottom = Some(padding);
+        self.container_padding_left = Some(padding);
+        self.container_padding_right = Some(padding);
+        self
+    }
+
+    pub fn container_padding_top(mut self, padding: f64) -> Self {
+        self.container_padding_top = Some(padding);
+        self
+    }
+
+    pub fn container_padding_bottom(mut self, padding: f64) -> Self {
+        self.container_padding_bottom = Some(padding);
+        self
+    }
+
+    pub fn container_padding_left(mut self, padding: f64) -> Self {
+        self.container_padding_left = Some(padding);
+        self
+    }
+
+    pub fn container_padding_right(mut self, padding: f64) -> Self {
+        self.container_padding_right = Some(padding);
+        self
+    }
 }
 
 #[derive(Clone)]
@@ -124,6 +160,10 @@ pub(crate) struct AllOpts {
     pub class: &'static str,
     /// Defaults to the whole window if this is `None`.
     pub container: Option<Rc<dyn Fn() -> Option<web_sys::Element>>>,
+    pub container_padding_top: f64,
+    pub container_padding_bottom: f64,
+    pub container_padding_left: f64,
+    pub container_padding_right: f64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -149,6 +189,10 @@ impl Default for AllOpts {
             border_radius: 5.0,
             class: "",
             container: None,
+            container_padding_top: 0.0,
+            container_padding_bottom: 0.0,
+            container_padding_left: 0.0,
+            container_padding_right: 0.0,
         }
     }
 }
@@ -164,6 +208,10 @@ impl AllOpts {
             show_on,
             arrow,
             container,
+            container_padding_top,
+            container_padding_bottom,
+            container_padding_left,
+            container_padding_right,
         } = opts;
 
         self.padding = padding.unwrap_or(self.padding);
@@ -173,6 +221,12 @@ impl AllOpts {
         self.show_on = show_on.unwrap_or(self.show_on);
         self.arrow = arrow.unwrap_or(self.arrow);
         self.container = container.unwrap_or(self.container);
+        self.container_padding_top = container_padding_top.unwrap_or(self.container_padding_top);
+        self.container_padding_bottom =
+            container_padding_bottom.unwrap_or(self.container_padding_bottom);
+        self.container_padding_left = container_padding_left.unwrap_or(self.container_padding_left);
+        self.container_padding_right =
+            container_padding_right.unwrap_or(self.container_padding_right);
 
         self
     }
