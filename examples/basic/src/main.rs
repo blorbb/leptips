@@ -8,11 +8,7 @@ fn main() {
 
 #[component]
 fn App() -> impl IntoView {
-    provide_context(
-        Opts::empty()
-            .with_padding(5.0)
-            .show_on(leptips::ShowOn::Hover),
-    );
+    provide_context(Opts::empty().padding(5.0).show_on(leptips::ShowOn::Hover));
     let scrolling_ref = NodeRef::new();
     let count = RwSignal::new(0);
     view! {
@@ -27,8 +23,8 @@ fn App() -> impl IntoView {
                 <Show when={move || count.get() % 2 == 0}>
                     <button
                         use:tooltip={tip(|| view! { "heelllllooo there" })
-                            .with_padding(5.0)
-                            .with_side(Side::Left)
+                            .padding(5.0)
+                            .side(Side::Left)
                             .show_on(leptips::ShowOn::Click)
                         }
                     >
@@ -53,7 +49,7 @@ fn App() -> impl IntoView {
                 use:tooltip={
                     tip(|| "thing!")
                     .container(scrolling_ref)
-                    .with_side(Side::Bottom)
+                    .side(Side::Bottom)
                     .show_on(leptips::ShowOn::Click)
                 }
             >

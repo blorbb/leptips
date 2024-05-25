@@ -25,7 +25,12 @@ pub struct Opts {
     /// First option is whether the arrow property is set.
     /// Second option is whether there is an arrow.
     pub(crate) arrow: Option<Option<ViewFn>>,
-    pub(crate) container: Option<Rc<dyn Fn() -> Option<web_sys::Element>>>,
+    /// First option is whether the container property is set.
+    /// Second option is whether there is a container (falls back to window if its None)
+    /// Third option is for whether the element has been created. This should always
+    /// be `Some` when the container needs to be used.
+    #[allow(clippy::type_complexity)]
+    pub(crate) container: Option<Option<Rc<dyn Fn() -> Option<web_sys::Element>>>>,
 }
 
 impl<T: Into<ViewFn>> From<T> for Opts {
@@ -46,27 +51,27 @@ impl Opts {
         tip(|| "")
     }
 
-    pub fn with_padding(mut self, padding: f64) -> Self {
+    pub fn padding(mut self, padding: f64) -> Self {
         self.padding = Some(padding);
         self
     }
 
-    pub fn with_side(mut self, side: Side) -> Self {
+    pub fn side(mut self, side: Side) -> Self {
         self.side = Some(side);
         self
     }
 
-    pub fn with_border_radius(mut self, border_radius: f64) -> Self {
+    pub fn border_radius(mut self, border_radius: f64) -> Self {
         self.border_radius = Some(border_radius);
         self
     }
 
-    pub fn with_class(mut self, class: &'static str) -> Self {
+    pub fn class(mut self, class: &'static str) -> Self {
         self.class = Some(class);
         self
     }
 
-    pub fn with_arrow(mut self, arrow: Option<impl Into<ViewFn>>) -> Self {
+    pub fn arrow(mut self, arrow: Option<impl Into<ViewFn>>) -> Self {
         self.arrow = Some(arrow.map(Into::into));
         self
     }
@@ -76,6 +81,15 @@ impl Opts {
         self
     }
 
+    /// Sets the container of the tooltip and reference.
+    ///
+    /// The input should usually be a [`NodeRef`], but can also be a
+    /// specific element. The element must be already mounted to the
+    /// page, otherwise functions like [`recalculate`] and [`tooltip`]
+    /// may panic.
+    ///
+    /// [`recalculate`]: crate::recalculate
+    /// [`tooltip`]: crate::tooltip
     pub fn container<El, T>(mut self, container: El) -> Self
     where
         El: Into<ElementMaybeSignal<T, web_sys::Element>>,
@@ -84,13 +98,18 @@ impl Opts {
         let e: ElementMaybeSignal<_, _> = container.into();
         let el: Rc<dyn Fn() -> Option<web_sys::Element>> = {
             match e {
-                ElementMaybeSignal::Static(st) => Rc::new(move || st.clone().map(|s| s.into())),
+                ElementMaybeSignal::Static(st) => Rc::new(move || st.clone().map(Into::into)),
                 ElementMaybeSignal::Dynamic(dy) => Rc::new(move || dy.get().map(Into::into)),
                 ElementMaybeSignal::_Phantom(_) => unreachable!(),
             }
         };
-        self.container = Some(el);
-        // self.container = Some();
+        self.container = Some(Some(el));
+        self
+    }
+
+    /// Sets the container to be the entire window.
+    pub fn window_container(mut self) -> Self {
+        self.container = Some(None);
         self
     }
 }
@@ -135,28 +154,26 @@ impl Default for AllOpts {
 }
 
 impl AllOpts {
-    pub(crate) fn overwrite_from(mut self, opts: Opts) -> Self {
-        if let Some(padding) = opts.padding {
-            self.padding = padding;
-        };
-        if let Some(side) = opts.side {
-            self.side = side;
-        }
-        if let Some(arrow) = opts.arrow {
-            self.arrow = arrow;
-        }
-        if let Some(show_on) = opts.show_on {
-            self.show_on = show_on;
-        }
-        if let Some(border_radius) = opts.border_radius {
-            self.border_radius = border_radius;
-        }
-        if let Some(class) = opts.class {
-            self.class = class;
-        }
-        if let Some(container) = opts.container {
-            self.container = Some(container);
-        }
+    pub(crate) fn overwrite_with(mut self, opts: Opts) -> Self {
+        let Opts {
+            content: _,
+            padding,
+            border_radius,
+            class,
+            side,
+            show_on,
+            arrow,
+            container,
+        } = opts;
+
+        self.padding = padding.unwrap_or(self.padding);
+        self.border_radius = border_radius.unwrap_or(self.border_radius);
+        self.class = class.unwrap_or(self.class);
+        self.side = side.unwrap_or(self.side);
+        self.show_on = show_on.unwrap_or(self.show_on);
+        self.arrow = arrow.unwrap_or(self.arrow);
+        self.container = container.unwrap_or(self.container);
+
         self
     }
 }

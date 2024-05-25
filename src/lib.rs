@@ -22,10 +22,10 @@ macro_rules! clone {
 
 pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: Opts) {
     let content = opts.content.clone();
-    let context_opts = use_context::<Opts>().unwrap_or_else(Opts::default);
+    let context_opts = use_context::<Opts>().unwrap_or_default();
     let opts = AllOpts::default()
-        .overwrite_from(context_opts)
-        .overwrite_from(opts);
+        .overwrite_with(context_opts)
+        .overwrite_with(opts);
     let container = (opts.container.clone()).and_then(|f| f());
 
     // to put styles into this one
@@ -45,7 +45,7 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: Opts) {
             <div
                 class="tooltip-arrow-box"
                 ref=arrow
-                style:position="fixed"
+                style:position="absolute"
                 style:aspect-ratio=1
                 style:pointer-events="none"
             >
@@ -137,7 +137,7 @@ pub fn recalculate(
     arrow_inner: &NodeRef<html::Div>,
     opts: Opts,
 ) {
-    let opts = AllOpts::default().overwrite_from(opts);
+    let opts = AllOpts::default().overwrite_with(opts);
     recalculate_all_opts(el, tip, container, arrow, arrow_inner, &opts)
 }
 
@@ -152,30 +152,29 @@ fn recalculate_all_opts(
     let (arrow, arrow_inner) = (arrow.get().unwrap(), arrow_inner.get().unwrap());
 
     if !tip.is_connected() {
-        _ = el.after_with_node_1(&tip);
+        _ = el.after_with_node_1(tip);
     }
 
     let viewport_rect = {
-        let html_element: web_sys::HtmlHtmlElement = document()
+        // should be the <html> element
+        let html = document()
             .scrolling_element()
-            .expect("document should have scrolling element")
-            .dyn_into()
-            .unwrap();
+            .expect("document should have scrolling element");
         ElemRect::new(
             0.0,
             0.0,
-            f64::from(html_element.client_width()),
-            f64::from(html_element.client_height()),
+            f64::from(html.client_width()),
+            f64::from(html.client_height()),
         )
     };
 
     let con_rect = if let Some(container) = container {
-        ElemRect::from_bounding_client_rect(&container).intersect(&viewport_rect)
+        ElemRect::from_bounding_client_rect(container).intersect(&viewport_rect)
     } else {
         viewport_rect
     };
-    let ref_rect = ElemRect::from_bounding_client_rect(&el);
-    let tip_size = ElemSize::from_bounding_client_rect(&tip);
+    let ref_rect = ElemRect::from_bounding_client_rect(el);
+    let tip_size = ElemSize::from_bounding_client_rect(tip);
     // don't use client rect so that it's consistent even if rotated
     let arr_size = ElemSize::new(
         f64::from(arrow_inner.offset_width()),
