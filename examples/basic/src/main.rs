@@ -41,7 +41,6 @@ fn App() -> impl IntoView {
                 <button
                     use:tooltip={tip(move || view! {"my count is " {count}}).show_on(leptips::ShowOn::Click)}
                     on:click=move |_| {
-                        logging::log!("count +=");
                         count.update(|c| *c += 1)
                     }
                 >
@@ -51,7 +50,12 @@ fn App() -> impl IntoView {
         </div>
         <div ref={scrolling_ref} class="scrolling-div">
             <button
-                use:tooltip={tip(|| "thing!").container(scrolling_ref).with_side(Side::Top).show_on(leptips::ShowOn::Click)}
+                use:tooltip={
+                    tip(|| "thing!")
+                    .container(scrolling_ref)
+                    .with_side(Side::Bottom)
+                    .show_on(leptips::ShowOn::Click)
+                }
             >
                 "I am another button inside a div"
             </button>

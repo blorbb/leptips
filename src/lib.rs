@@ -28,7 +28,6 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: Opts) {
         .overwrite_from(opts);
     let container = (opts.container.clone()).and_then(|f| f());
 
-    // logging::log!("{:?}", container.tag_name());
     // to put styles into this one
     let arrow = NodeRef::new();
     // to get dimensions from this one
@@ -62,47 +61,43 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: Opts) {
         </div>
     };
 
-    let event = ev::scroll;
-    let callback = {
+    let scroll_callback = {
         clone!(el tip container arrow arrow_inner opts);
         move |_| {
-            // logging::log!("scrolled {}", container.map.tag_name());
             if tip.is_connected() {
-                recalculate(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                recalculate_all_opts(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
             }
         }
     };
-    let cleanup = use_event_listener(container.clone(), event, callback.clone());
-    // TODO: is this cleanup necessary?
-    on_cleanup(move || cleanup());
-    let handle = window_event_listener(event, callback);
+    _ = use_event_listener(container.clone(), ev::scroll, scroll_callback.clone());
+    let handle = window_event_listener(ev::scroll, scroll_callback);
     on_cleanup(move || handle.remove());
 
-    if let Some(container) = container.clone() {
-        let cleanup = use_event_listener(container.clone(), ev::blur, {
-            clone!(tip);
-            move |_| {
-                tip.remove();
-            }
-        });
-        on_cleanup(move || cleanup());
-    }
+    let handle = window_event_listener(ev::blur, {
+        clone!(tip);
+        move |_| {
+            tip.remove();
+        }
+    });
+    on_cleanup(move || handle.remove());
 
-    let cleanup = use_event_listener(container.clone(), ev::resize, {
+    let handle = window_event_listener(ev::resize, {
         clone!(el tip container arrow arrow_inner opts);
         move |_| {
             if tip.is_connected() {
-                recalculate(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                recalculate_all_opts(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
             }
         }
     });
-    on_cleanup(move || cleanup());
+    on_cleanup(move || handle.remove());
 
     match opts.show_on {
         ShowOn::Hover => {
             _ = el.clone().on(ev::undelegated(ev::mouseenter), {
                 clone!(el tip container arrow arrow_inner opts);
-                move |_| recalculate(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                move |_| {
+                    recalculate_all_opts(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                }
             });
             _ = el.clone().on(ev::undelegated(ev::mouseleave), {
                 clone!(tip);
@@ -112,7 +107,9 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: Opts) {
         ShowOn::Click => {
             _ = el.clone().on(ev::undelegated(ev::click), {
                 clone!(el tip container arrow arrow_inner opts);
-                move |_| recalculate(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                move |_| {
+                    recalculate_all_opts(&el, &tip, container.as_ref(), &arrow, &arrow_inner, &opts)
+                }
             });
             // remove on click outside
             let handler = window_event_listener(ev::click, {
@@ -138,6 +135,18 @@ pub fn recalculate(
     container: Option<&web_sys::Element>,
     arrow: &NodeRef<html::Div>,
     arrow_inner: &NodeRef<html::Div>,
+    opts: Opts,
+) {
+    let opts = AllOpts::default().overwrite_from(opts);
+    recalculate_all_opts(el, tip, container, arrow, arrow_inner, &opts)
+}
+
+fn recalculate_all_opts(
+    el: &web_sys::HtmlElement,
+    tip: &leptos::HtmlElement<html::Div>,
+    container: Option<&web_sys::Element>,
+    arrow: &NodeRef<html::Div>,
+    arrow_inner: &NodeRef<html::Div>,
     opts: &AllOpts,
 ) {
     let (arrow, arrow_inner) = (arrow.get().unwrap(), arrow_inner.get().unwrap());
@@ -146,9 +155,7 @@ pub fn recalculate(
         _ = el.after_with_node_1(&tip);
     }
 
-    let con_rect = if let Some(container) = container {
-        ElemRect::from_bounding_client_rect(&container)
-    } else {
+    let viewport_rect = {
         let html_element: web_sys::HtmlHtmlElement = document()
             .scrolling_element()
             .expect("document should have scrolling element")
@@ -161,6 +168,12 @@ pub fn recalculate(
             f64::from(html_element.client_height()),
         )
     };
+
+    let con_rect = if let Some(container) = container {
+        ElemRect::from_bounding_client_rect(&container).intersect(&viewport_rect)
+    } else {
+        viewport_rect
+    };
     let ref_rect = ElemRect::from_bounding_client_rect(&el);
     let tip_size = ElemSize::from_bounding_client_rect(&tip);
     // don't use client rect so that it's consistent even if rotated
@@ -168,8 +181,6 @@ pub fn recalculate(
         f64::from(arrow_inner.offset_width()),
         f64::from(arrow_inner.offset_height()),
     );
-
-    logging::log!("ref {:?}, container {:?}", ref_rect, con_rect);
 
     let mut arrow_data = ArrowData::new();
     let arr_width = arr_size.width();

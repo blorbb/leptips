@@ -1,8 +1,7 @@
 use floater::geometry::Side;
 use leptos::*;
-use leptos_use::{core::ElementMaybeSignal, use_document};
+use leptos_use::core::ElementMaybeSignal;
 use std::rc::Rc;
-use web_sys::wasm_bindgen::JsCast;
 
 /// Tooltip options to be passed in to `use:tooltip`.
 ///
