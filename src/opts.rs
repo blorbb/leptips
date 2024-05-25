@@ -1,20 +1,22 @@
 use floater::geometry::Side;
 use leptos::*;
+use leptos_use::{core::ElementMaybeSignal, use_document};
+use std::rc::Rc;
+use web_sys::wasm_bindgen::JsCast;
 
 /// Tooltip options to be passed in to `use:tooltip`.
 ///
 /// This struct should be constructed using the [`tip`] free function.
 /// Configuration is done with the builder pattern. All options not passed
 /// in explicitly will be set to a default, either through a provided
-/// [`context`](leptos::provide_context) of type [`DefaultOpts`],
-/// or the default configuration [`DefaultOpts::default`].
+/// [`context`](leptos::provide_context) or the default configuration.
 ///
 /// A blanket implementation is provided to convert all view functions into
-/// a [`PartialOpts`] struct. If you don't want to override any options,
+/// a [`Opts`] struct. If you don't want to override any options,
 /// you can just provide a view function in `use:tooltip` instead of wrapping
 /// it in [`tip`].
 #[derive(Default, Clone)]
-pub struct PartialOpts {
+pub struct Opts {
     pub(crate) content: ViewFn,
     pub(crate) padding: Option<f64>,
     pub(crate) border_radius: Option<f64>,
@@ -24,9 +26,10 @@ pub struct PartialOpts {
     /// First option is whether the arrow property is set.
     /// Second option is whether there is an arrow.
     pub(crate) arrow: Option<Option<ViewFn>>,
+    pub(crate) container: Option<Rc<dyn Fn() -> Option<web_sys::Element>>>,
 }
 
-impl<T: Into<ViewFn>> From<T> for PartialOpts {
+impl<T: Into<ViewFn>> From<T> for Opts {
     fn from(value: T) -> Self {
         Self {
             content: value.into(),
@@ -35,11 +38,15 @@ impl<T: Into<ViewFn>> From<T> for PartialOpts {
     }
 }
 
-pub fn tip<T: Into<ViewFn>>(view: T) -> PartialOpts {
+pub fn tip<T: Into<ViewFn>>(view: T) -> Opts {
     view.into().into()
 }
 
-impl PartialOpts {
+impl Opts {
+    pub fn empty() -> Opts {
+        tip(|| "")
+    }
+
     pub fn with_padding(mut self, padding: f64) -> Self {
         self.padding = Some(padding);
         self
@@ -70,36 +77,35 @@ impl PartialOpts {
         self
     }
 
-    /// Fills the options with the provided [`DefaultOpts`].
-    ///
-    /// This can be used as an alternative to providing a context, e.g. for
-    /// making a single tooltip have different options.
-    ///
-    /// This should be ran as the first method after [`tip`]. Individual settings
-    /// can still be overridden with the other builder methods.
-    pub fn fill_from(mut self, opts: DefaultOpts) -> Self {
-        self.padding = Some(opts.padding);
-        self.side = Some(opts.side);
-        self.arrow = Some(opts.arrow);
-        self.show_on = Some(opts.show_on);
-        self.border_radius = Some(opts.border_radius);
-        self.class = Some(opts.class);
+    pub fn container<El, T>(mut self, container: El) -> Self
+    where
+        El: Into<ElementMaybeSignal<T, web_sys::Element>>,
+        T: Into<web_sys::Element> + Clone + 'static,
+    {
+        let e: ElementMaybeSignal<_, _> = container.into();
+        let el: Rc<dyn Fn() -> Option<web_sys::Element>> = {
+            match e {
+                ElementMaybeSignal::Static(st) => Rc::new(move || st.clone().map(|s| s.into())),
+                ElementMaybeSignal::Dynamic(dy) => Rc::new(move || dy.get().map(Into::into)),
+                ElementMaybeSignal::_Phantom(_) => unreachable!(),
+            }
+        };
+        self.container = Some(el);
+        // self.container = Some();
         self
     }
 }
 
-/// Default options to be used by a tooltip.
-///
-/// This should generally be used in a [`provide_context`], where all tooltips
-/// in the current (and child) components will then get these configuration options.
 #[derive(Clone)]
-pub struct DefaultOpts {
+pub(crate) struct AllOpts {
     pub padding: f64,
     pub side: Side,
     pub arrow: Option<ViewFn>,
     pub show_on: ShowOn,
     pub border_radius: f64,
     pub class: &'static str,
+    /// Defaults to the whole window if this is `None`.
+    pub container: Option<Rc<dyn Fn() -> Option<web_sys::Element>>>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -109,7 +115,7 @@ pub enum ShowOn {
     Click,
 }
 
-impl Default for DefaultOpts {
+impl Default for AllOpts {
     fn default() -> Self {
         Self {
             padding: 0.0,
@@ -124,12 +130,13 @@ impl Default for DefaultOpts {
             ),
             border_radius: 5.0,
             class: "",
+            container: None,
         }
     }
 }
 
-impl DefaultOpts {
-    pub(crate) fn overwrite_from(mut self, opts: PartialOpts) -> Self {
+impl AllOpts {
+    pub(crate) fn overwrite_from(mut self, opts: Opts) -> Self {
         if let Some(padding) = opts.padding {
             self.padding = padding;
         };
@@ -147,6 +154,9 @@ impl DefaultOpts {
         }
         if let Some(class) = opts.class {
             self.class = class;
+        }
+        if let Some(container) = opts.container {
+            self.container = Some(container);
         }
         self
     }
