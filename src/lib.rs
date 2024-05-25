@@ -95,17 +95,17 @@ pub fn tooltip(el: leptos::HtmlElement<html::AnyElement>, opts: PartialOpts) {
 
     match opts.show_on {
         ShowOn::Hover => {
-            _ = el.clone().on(ev::mouseenter, {
+            _ = el.clone().on(ev::undelegated(ev::mouseenter), {
                 clone!(el tip container arrow arrow_inner opts);
                 move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
             });
-            _ = el.clone().on(ev::mouseleave, {
+            _ = el.clone().on(ev::undelegated(ev::mouseleave), {
                 clone!(tip);
                 move |_| tip.remove()
             });
         }
         ShowOn::Click => {
-            _ = el.clone().on(ev::click, {
+            _ = el.clone().on(ev::undelegated(ev::click), {
                 clone!(el tip container arrow arrow_inner opts);
                 move |_| recalculate(&el, &tip, &container, &arrow, &arrow_inner, &opts)
             });
